@@ -15,3 +15,5 @@
 
 /* Keep the GSUIT caption intact and center the complete footer brand block. */
 .sidebar{width:17.5rem}.workspace{margin-left:17.5rem}.brand-tagline{font-size:.75rem;white-space:nowrap;line-height:1.65}.site-footer{flex-direction:column;align-items:center;text-align:center;gap:18px}.site-footer .footer-brand{width:100%;align-items:center;text-align:center}.site-footer .footer-links{justify-content:center;text-align:center}.footer-values,.footer-values-meaning{text-align:center}@media(max-width:800px){.workspace{margin-left:0}.sidebar{width:17.5rem;max-width:calc(100vw - 20px)}}
+
+.auth-page{min-height:100vh;display:grid;place-items:center;padding:24px}.auth-card{width:min(100%,460px);display:grid;gap:20px}.auth-card form{display:grid;gap:18px}.auth-card h1{font-size:40px}.signout{border:0;background:none}.profile-delete{margin-top:16px}

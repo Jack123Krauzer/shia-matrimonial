@@ -4,9 +4,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Sukoon · Shia Matrimony",
   description: "A thoughtful path to marriage. Explore compatibility, connect with consent, and share at your own pace.",
-  other: {
-    "codex-preview": "development",
-  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

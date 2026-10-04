@@ -1,44 +1,83 @@
 # Sukoon · Shia Matrimony
 
-A React matrimonial application for serious marriage intentions. Anonymous discovery leads to consent-based requests and accepted-only messaging.
+A standard Next.js application with Supabase Postgres CRUD, Supabase email/password authentication, and local filesystem image uploads. There are no Cloudflare bindings, R2 buckets, Sites runtime, or ChatGPT authentication dependencies.
 
-## Product flow
+The existing Sukoon design, GSUIT sidebar caption and centered footer are preserved. Discovery keeps names and emails private; accepting a request unlocks them for the two participants. Chat requires acceptance. Photos require separate consent per connection.
 
-- Secure sign-in through the Sites ChatGPT identity flow; adult and guardian-consent declarations before profile creation.
-- Registration oath reproduces the supplied Quran 2:42 quotation and truthfulness declaration. The submitted oath timestamp and Terms version are saved.
-- One-time ₹100 Razorpay registration or an account-bound, single-use waiver coupon. Unpaid profiles remain out of discovery.
-- Discovery returns a deliberately limited server projection. Full names, account emails, dates of birth, and photo storage keys are omitted.
-- A request implies sender consent; acceptance requires explicit recipient consent. Both names and emails then become visible to the two parties.
-- Photo permission is separate and per connection. Photos are private R2 objects served only after authorization. Replacement resets all existing photo permissions. Browser uploads are re-encoded to remove metadata.
-- Conversation access is limited to accepted participants. Closing or blocking ends access and photo permission. Previously copied information cannot be recalled.
-- Member enquiries are saved. The configured administrator can issue personal coupons and resolve enquiries.
-- Fictional preview profiles and actions are explicitly labeled and never enter the member database. Preview state resets on refresh.
+## Run locally
 
-## Runtime configuration
+Use Node.js 22 or newer.
 
-The current checkout targets ChatGPT Sites and Cloudflare Workers. Checkout is disabled because payment credentials are absent. ChatGPT Sites does not permit financial transactions; do not enable paid registration on that host. After migrating to an independent host, configure ADMIN_EMAIL, RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET as server-side environment values. Use test keys first and enable automatic capture in Razorpay. The Check payment action recovers captured payments when a browser callback was interrupted. Gateway responses are verified server-side against stored order ownership, HMAC signature, amount ₹100, currency INR, and captured state.
+```bash
+npm ci
+cp .env.example .env.local
+npm run dev
+```
 
-## Development
+On Windows, copy `.env.example` to `.env.local` through Explorer or PowerShell. Fill in:
 
-Run the bundled dependency installer, then use the Sites execution profile and supervised preview. Generate schema deltas with the declared db:generate script. D1 migrations in drizzle are schema-only and must be applied once, in order. The source is persisted in the Site source repository; no generated runtime state, private photos, credentials, or local test records are committed.
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public API key used for login |
+| `SUPABASE_SECRET_KEY` | Server-only secret API key for database operations |
+| `ADMIN_EMAIL` | Email of the account allowed to manage support and waiver coupons |
+| `UPLOAD_DIR` | Local private image folder; defaults to `./uploads` |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Optional registration checkout credentials |
 
-## Checks
+A legacy `SUPABASE_SERVICE_ROLE_KEY` is also supported instead of `SUPABASE_SECRET_KEY`. Never prefix either secret with `NEXT_PUBLIC_`, put it in frontend code, or commit `.env.local`.
 
-TypeScript and production Worker build. Isolated SQLite integration checks of the actual API routes cover anonymous access, adult registration, fee gating, request ownership, consent-based disclosure, accepted-only messaging, private photo access, and connection closure. Browser visual testing was unavailable; the supervised preview returned HTTP 502, and the approved control-browser capability is not installed.
+The connected **Shia-Matrimonial** Supabase project already has the schema applied. For a fresh project, run `supabase/schema.sql` once in the Supabase SQL Editor. In **Authentication → URL Configuration**, set the Site URL and allow your local and production `/auth/callback` URLs. Enable email/password authentication. Email confirmation is supported through the PKCE callback. For confirmation links that should also work on a different browser/device, configure the confirmation template to use `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`.
 
-## Launch boundaries
+## CRUD and application routes
 
-The initial site retains owner-only access. Custom-domain DNS must be configured before gsuit.in resolves to this site. Payment credentials are not supplied, so actual charging is disabled. Public registration currently uses ChatGPT sign-in. Production payment tests, operator-approved Terms and Privacy text, and operational moderation arrangements are still required before public onboarding. Profiles are self-declared; neither the oath nor the fee is identity verification. Chat has server access controls, not end-to-end encryption.
+| Method / route | Behavior |
+| --- | --- |
+| `POST /api/auth` | Create an account or sign in using email/password |
+| `POST /auth/signout` | Sign out |
+| `GET /api/profiles` | Read your profile |
+| `POST /api/profiles` | Create your profile |
+| `PATCH /api/profiles` | Update your profile |
+| `DELETE /api/profiles` | Delete your profile, connections, conversations, payments and local photo; retain your login account |
+| `GET /api/app` | Anonymous discovery projections, your requests and support enquiries |
+| `POST /api/app` | Requests, accept/decline, preferences, chat, blocking, enquiries and fee waivers |
+| `GET /api/app?chat=…` | Read an accepted connection's messages |
+| `POST /api/photo` | Upload/replace your image; revoke previous photo permissions |
+| `GET /api/photo?profile=…` | Read your own photo or a photo shared with your accepted connection |
+| `DELETE /api/photo` | Delete your photo and its sharing permissions |
+| `POST /api/payment` | Optional Razorpay order, verification and payment recovery |
 
-## Hosting on Vercel: migration required
+Profiles are limited to adults and require the registration oath. Registration remains ₹100 once, or an administrator-issued, account-bound waiver coupon. Checkout stays disabled unless payment credentials are configured. Preview members are fictional and stored only in browser memory.
 
-This repository is a source import of the current Sites application. It is **not yet deployable on Vercel**. Importing it into Vercel without adapting the backend will not produce a working matrimonial service.
+## Local images and hosting
 
-1. Replace the Vinext/Workers build and start scripts with the standard Next.js build and runtime; update the lockfile with those changes.
-2. Migrate the D1 schema and queries in `lib/store.ts`, `db/index.ts` and API routes to a database accessible from Vercel. Preserve profile, consent, connection, message, coupon and payment records when migrating existing members.
-3. Replace R2 Worker bindings with private object storage accessed through its SDK. Preserve the photo authorization checks and per-connection consent.
-4. Replace Sites-managed sign-in with verified server-side authentication. `app/chatgpt-auth.ts` trusts headers injected by the Sites gateway; those headers must never be trusted from public requests on an independent host.
-5. Configure secrets in Vercel, apply database migrations, and test registration, fee waivers, request acceptance/decline, private photo visibility and chat before enabling public onboarding.
-6. After verification, connect `gsuit.in` to the new deployment using the DNS records supplied by the host.
+Images are decoded, resized and rewritten as JPEG files in `UPLOAD_DIR`, outside `public/`. The server removes image metadata and serves files only through authorized API requests. Uploads are limited to JPEG/PNG and 5 MB. The database stores the filename, not the image bytes. Uploaded images and environment secrets are excluded from Git.
 
-This import contains source and schema migrations, not the production database, private photos or environment secrets. The current Sites deployment is unaffected by this GitHub import.
+For production with local uploads, run the app on a VPS or another Node.js server with persistent disk:
+
+```bash
+npm run build
+npm start
+```
+
+Mount a persistent directory at `UPLOAD_DIR` and back it up along with the database. Multiple application instances must share that directory.
+
+**Vercel supports the Next.js CRUD app, but does not provide persistent writable local disk for uploaded images.** This implementation explicitly rejects uploads on Vercel rather than pretending to save files that will disappear. Reading images uploaded to another server is also unavailable on Vercel without a shared filesystem. To keep local uploads, host on a server with persistent disk. No external image storage service is configured.
+
+## Access controls
+
+Every private API operation verifies the Supabase user with `auth.getUser()`, then enforces ownership and connection consent on the server. No client-supplied identity headers are trusted. Administrative permissions use the server's `ADMIN_EMAIL`, not editable user metadata.
+
+All seven tables enable RLS and revoke direct access from `anon` and `authenticated`. This is deliberate: the browser does not query member tables directly. Only the server-only secret may access them after route authorization. Transaction functions use invoker privileges, have fixed search paths, and are executable only by `service_role`. Waiver redemption, payments, photo replacement, profile deletion and blocking update related records atomically.
+
+No live Sites user records or photos are imported. The previous Sites deployment is a separate application; this repository targets independent hosting.
+
+## Verification
+
+```bash
+npm run typecheck
+npm test
+npm run build
+```
+
+The route tests cover private discovery projections, profile ownership, create/update/delete, acceptance, chat and photo access. Local image tests cover real encoding and filesystem read/delete. The Supabase schema and transaction helpers are verified against the connected Postgres project using temporary records rolled back after the checks.
