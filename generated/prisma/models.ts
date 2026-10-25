@@ -11,6 +11,7 @@
 export type * from './models/User'
 export type * from './models/Session'
 export type * from './models/Profile'
+export type * from './models/Photo'
 export type * from './models/Connection'
 export type * from './models/Message'
 export type * from './models/Support'

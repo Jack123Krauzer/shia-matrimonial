@@ -57,6 +57,11 @@ export type Session = Prisma.SessionModel
  */
 export type Profile = Prisma.ProfileModel
 /**
+ * Model Photo
+ * 
+ */
+export type Photo = Prisma.PhotoModel
+/**
  * Model Connection
  * 
  */

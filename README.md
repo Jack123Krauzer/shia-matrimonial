@@ -1,5 +1,7 @@
 # Sukoon · Shia Matrimony
 
+Production uses **Turso (hosted SQLite/libSQL)**; local SQLite remains available for development. Follow [Turso setup](docs/TURSO_SETUP.md) for the two required hosted credentials, optional import of existing records, and Vercel deployment. Builds initialize missing tables automatically after validating the connection configuration.
+
 ## Design and rendering
 
 - Tailwind CSS v4 handles all authored styling. `tailwind.config.ts` defines the shared forest-green, ivory, and gold palette, typography, and shadows. Use semantic utilities such as `bg-primary`, `text-muted`, and `border-border`; `app/globals.css` only imports Tailwind and loads its config. `lib/ui/tailwind.ts` holds member UI recipes. Payment checkout reads the primary token from computed CSS, and the social image uses the same exported palette.
@@ -12,14 +14,14 @@
 - Run `npm run demo:seed` against the already-running development server, or use **Add demo records** in the admin panel, to populate ten labelled fictional profiles in Prisma/SQLite. Three start under review; two have waived fees and one has an outstanding fee. Repeating this never overwrites existing profiles or review decisions. Seeding is admin-only and disabled outside development.
 - The admin dashboard uses a responsive sidebar, summary cards, a member table/mobile cards, and a full-details review drawer. Profile filters and member connection tabs default to **All statuses**. Profile, registration, connection, and enquiry statuses use shared labelled badges.
 - Administrator sign-in lives at `/admin/login`, with an administrator-only authentication endpoint. Signed-out visits to `/admin` redirect there; admin sign-out also returns there. The member page `/auth` no longer shows the admin demo button or credentials. Member and admin demos remain development-only on their respective pages.
-- Confidential data stays in the server database and private photo storage. Authentication uses an HttpOnly cookie; the application does not use localStorage or sessionStorage. Database files, environment files, and uploads are excluded from Git.
+- Confidential data, including processed private photos, stays in the database. Authentication uses an HttpOnly cookie; the application does not use localStorage or sessionStorage. Local database files, backups, and environment files are excluded from Git.
 - Development integration checks: `node scripts/check-member-ui.mjs` and `node --experimental-sqlite scripts/check-approval-flow.mjs`. The approval check creates and removes its own disposable synthetic account.
 
 A Next.js matrimonial platform designed for intentional Shia matrimonial unions based on the **GSUIT** philosophy (*Ghar · Sukoon · Ulfat · Imaan · Taqwa*).
 
 ## Key Architectural Updates
 
-- **Database**: Migrated completely from Supabase to **Prisma with SQLite** (`dev.db`). No external cloud database required. Confidential matrimonial data is stored server-side.
+- **Database**: Prisma with Turso for production, or local SQLite (`dev.db`) for development. The libSQL adapter supports both without changing application queries. A local file cannot be used as persistent Vercel storage.
 - **Authentication**: Custom cookie-based session management (`sukoon_session` with `httpOnly`, `sameSite: 'lax'`) using PBKDF2 password hashing. No third-party auth dependencies.
 - **Private Routing**: Next.js `middleware.ts` enforces private routing. Unauthenticated visitors can read public information pages; member routes redirect to `/auth`.
 - **Admin Governance Panel**: Dedicated `/admin` control center for managing member profiles (activate, suspend, delete), issuing fee waiver coupons, reviewing safety concerns, and auditing consent-based connections.
@@ -31,8 +33,8 @@ A Next.js matrimonial platform designed for intentional Shia matrimonial unions 
 # Install dependencies
 npm install
 
-# Run database push (if schema modified)
-npx prisma db push
+# Initialize tables without removing existing records
+npm run db:setup
 
 # Start development server
 npm run dev
@@ -42,10 +44,11 @@ npm run dev
 
 ```ini
 DATABASE_URL="file:./dev.db"
-ADMIN_EMAIL=admin@sukoon.dev
-ADMIN_PASSWORD=admin123
-SESSION_SECRET=sukoon-dev-secret-change-in-production-2026
-UPLOAD_DIR=./uploads
+TURSO_DATABASE_URL=
+TURSO_AUTH_TOKEN=
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+ADMIN_EMAIL=your-admin-email
+ADMIN_PASSWORD=your-private-password
 RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
 ```

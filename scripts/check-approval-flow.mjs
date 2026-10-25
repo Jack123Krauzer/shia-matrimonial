@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import 'dotenv/config';
+import './env.mjs';
 import { DatabaseSync } from 'node:sqlite';
+import sharp from 'sharp';
+import { databaseConfig } from '../lib/database-config.mjs';
+
+if(databaseConfig().remote)throw new Error('Run this disposable-account integration check against local SQLite, not a hosted database.');
 
 const origin=process.env.APP_URL || 'http://localhost:3000';
 const email=`approval-check-${randomUUID()}@example.test`;
@@ -39,6 +43,18 @@ try {
   assert.equal(own.data.matches.length,0);
   assert.match(own.response.headers.get('cache-control'),/no-store.*private/);
   const id=own.data.me.id;
+  const png=await sharp({create:{width:32,height:32,channels:3,background:{r:30,g:80,b:60}}}).png().toBuffer();
+  async function upload(){
+    const response=await fetch(origin+'/api/photo',{method:'POST',headers:{Cookie:applicant,Origin:origin,'Content-Type':'image/png'},body:png});
+    assert.equal(response.status,200,await response.text());
+  }
+  async function photo(cookie){return fetch(origin+'/api/photo?profile='+id,{headers:{Cookie:cookie}});}
+  await upload();
+  const ownPhoto=await photo(applicant);
+  assert.equal(ownPhoto.status,200);
+  assert.match(ownPhoto.headers.get('cache-control'),/no-store/);
+  assert.equal((await sharp(Buffer.from(await ownPhoto.arrayBuffer())).metadata()).format,'jpeg');
+  assert.equal((await photo(viewer)).status,403,'Pending photos remain private');
   async function visible(expected){
     const {data}=await call('/api/app',{cookie:viewer});
     const match=data.matches.find(row=>row.id===id);
@@ -62,10 +78,20 @@ try {
   assert.deepEqual(firstReview.reviewIssues,[]);
   assert.equal((await adminAction({action:'updateProfileStatus',profileId:id,status:'active',reviewed:true,reviewVersion:firstReview.oathAt})).response.status,200);
   await visible(true);
+  assert.equal((await call('/api/app',{cookie:viewer,body:{action:'request',target:id,note:'A respectful synthetic integration test introduction.',consent:true}})).response.status,200);
+  const connection=(await call('/api/app',{cookie:applicant})).data.requests.find(row=>row.other.id==='DEMO-MEMBER');
+  assert.ok(connection);
+  assert.equal((await call('/api/app',{cookie:applicant,body:{action:'accept',connectionId:connection.id,consent:true}})).response.status,200);
+  assert.equal((await photo(viewer)).status,403,'Connection acceptance does not share a photo');
+  assert.equal((await call('/api/app',{cookie:applicant,body:{action:'photoConsent',connectionId:connection.id,share:true}})).response.status,200);
+  assert.equal((await photo(viewer)).status,200,'Explicit consent unlocks the database photo');
+  await upload();
+  assert.equal((await photo(viewer)).status,403,'Replacing a photo resets sharing permission');
   const profilePage=await fetch(origin+'/discover?view=profile',{headers:{Cookie:applicant}});
   assert.match(await profilePage.text(),/Review Test Member/,'My profile renders the signed-in person’s saved details');
   assert.equal((await call('/api/profiles',{cookie:applicant,method:'PATCH',body:{...profile,profession:'Updated architect'}})).response.status,200);
   assert.equal((await review()).status,'pending','Edits require a fresh review');
+  assert.equal((await photo(viewer)).status,403);
   await visible(false);
   assert.equal((await adminAction({action:'updateProfileStatus',profileId:id,status:'active',reviewed:true,reviewVersion:firstReview.oathAt})).response.status,409);
   const updated=await review();
@@ -76,7 +102,10 @@ try {
   await visible(false);
   assert.equal((await call('/api/app',{cookie:applicant,body:{action:'request',target:'DEMO-1001',note:'A respectful test introduction.',consent:true}})).response.status,403);
   assert.equal((await call('/api/profiles',{cookie:applicant,method:'PATCH',body:{...profile,dob:'2015-01-01'}})).response.status,400);
-  console.log('PASS signup confirmation, validation, admin-only review, waiver separation, approval visibility, edit re-review, suspension, private identity');
+  const removed=await fetch(origin+'/api/photo',{method:'DELETE',headers:{Cookie:applicant,Origin:origin}});
+  assert.equal(removed.status,200);
+  assert.equal((await photo(applicant)).status,404);
+  console.log('PASS approval flow, private identity, database photo upload/read/delete, consent, and replacement privacy');
 } finally {
   for(const cookie of sessions)await fetch(origin+'/auth/signout',{method:'POST',headers:{Cookie:cookie,Origin:origin},redirect:'manual'});
   if(created){

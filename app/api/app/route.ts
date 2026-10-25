@@ -97,9 +97,7 @@ export async function POST(req: Request) {
     if (b.action === 'deleteProfile') {
       const p = await prisma.profile.findUnique({ where: { userId: user.userId } });
       if (p) {
-        const oldPhoto = p.photoKey;
         await prisma.profile.delete({ where: { id: p.id } });
-        if (oldPhoto) { const { removeLocalPhoto } = await import('../../../lib/photos'); await removeLocalPhoto(oldPhoto); }
       }
       return json({ ok: true });
     }
