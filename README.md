@@ -1,83 +1,58 @@
 # Sukoon · Shia Matrimony
 
-A standard Next.js application with Supabase Postgres CRUD, Supabase email/password authentication, and local filesystem image uploads. There are no Cloudflare bindings, R2 buckets, Sites runtime, or ChatGPT authentication dependencies.
+## Design and rendering
 
-The existing Sukoon design, GSUIT sidebar caption and centered footer are preserved. Discovery keeps names and emails private; accepting a request unlocks them for the two participants. Chat requires acceptance. Photos require separate consent per connection.
+- Tailwind CSS v4 handles all authored styling. `tailwind.config.ts` defines the shared forest-green, ivory, and gold palette, typography, and shadows. Use semantic utilities such as `bg-primary`, `text-muted`, and `border-border`; `app/globals.css` only imports Tailwind and loads its config. `lib/ui/tailwind.ts` holds member UI recipes. Payment checkout reads the primary token from computed CSS, and the social image uses the same exported palette.
+- `/`, `/how-it-works`, and `/privacy` are public server component pages with unique metadata and canonical URLs. `/sitemap.xml`, `/robots.txt`, and `/opengraph-image` support search discovery and sharing.
+- `/discover` validates the session on the server and renders the initial account response before hydration. Private discovery, auth, and admin pages use `noindex` metadata and are excluded from the sitemap.
+- Set `NEXT_PUBLIC_SITE_URL` to your real HTTPS origin before production deployment. Local development defaults to `http://localhost:3000`. Search rankings also depend on content quality, site performance, and reputation; SSR does not guarantee rankings.
+- Public information pages intentionally contain no member data. The homepage is now public; signed-in members reach their workspace at `/discover`.
+- The member workspace uses the authenticated account and its saved profile. Accounts without a profile see their account email and a setup prompt; fictional profiles and connections are not substituted. Filter dropdowns support keyboard selection, and navigation becomes an off-canvas drawer at widths of 800px or less.
+- New accounts land on `/registration-confirmation`. Submitted profiles remain pending until an administrator reviews the full details and explicitly approves them. Discovery requires both approval and a paid/waived fee; payments and coupons never approve profiles. Editing profile details requires a fresh review, and suspended profiles stay hidden.
+- Run `npm run demo:seed` against the already-running development server, or use **Add demo records** in the admin panel, to populate ten labelled fictional profiles in Prisma/SQLite. Three start under review; two have waived fees and one has an outstanding fee. Repeating this never overwrites existing profiles or review decisions. Seeding is admin-only and disabled outside development.
+- The admin dashboard uses a responsive sidebar, summary cards, a member table/mobile cards, and a full-details review drawer. Profile filters and member connection tabs default to **All statuses**. Profile, registration, connection, and enquiry statuses use shared labelled badges.
+- Administrator sign-in lives at `/admin/login`, with an administrator-only authentication endpoint. Signed-out visits to `/admin` redirect there; admin sign-out also returns there. The member page `/auth` no longer shows the admin demo button or credentials. Member and admin demos remain development-only on their respective pages.
+- Confidential data stays in the server database and private photo storage. Authentication uses an HttpOnly cookie; the application does not use localStorage or sessionStorage. Database files, environment files, and uploads are excluded from Git.
+- Development integration checks: `node scripts/check-member-ui.mjs` and `node --experimental-sqlite scripts/check-approval-flow.mjs`. The approval check creates and removes its own disposable synthetic account.
 
-## Run locally
+A Next.js matrimonial platform designed for intentional Shia matrimonial unions based on the **GSUIT** philosophy (*Ghar · Sukoon · Ulfat · Imaan · Taqwa*).
 
-Use Node.js 22 or newer.
+## Key Architectural Updates
+
+- **Database**: Migrated completely from Supabase to **Prisma with SQLite** (`dev.db`). No external cloud database required. Confidential matrimonial data is stored server-side.
+- **Authentication**: Custom cookie-based session management (`sukoon_session` with `httpOnly`, `sameSite: 'lax'`) using PBKDF2 password hashing. No third-party auth dependencies.
+- **Private Routing**: Next.js `middleware.ts` enforces private routing. Unauthenticated visitors can read public information pages; member routes redirect to `/auth`.
+- **Admin Governance Panel**: Dedicated `/admin` control center for managing member profiles (activate, suspend, delete), issuing fee waiver coupons, reviewing safety concerns, and auditing consent-based connections.
+- **Account access**: Everyone uses the same email/password sign-in and account creation flow. In local development, Member demo and Admin demo buttons use `member@example.test` and `admin@example.test` with password `SukoonDemo123!`. These accounts are provisioned on first demo sign-in and blocked outside development, including existing demo sessions. Administrator provisioning uses `ADMIN_EMAIL` and `ADMIN_PASSWORD` when configured.
+
+## Running Locally
 
 ```bash
-npm ci
-cp .env.example .env.local
+# Install dependencies
+npm install
+
+# Run database push (if schema modified)
+npx prisma db push
+
+# Start development server
 npm run dev
 ```
 
-On Windows, copy `.env.example` to `.env.local` through Explorer or PowerShell. Fill in:
+## Environment Variables (`.env`)
 
-| Variable | Purpose |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public API key used for login |
-| `SUPABASE_SECRET_KEY` | Server-only secret API key for database operations |
-| `ADMIN_EMAIL` | Email of the account allowed to manage support and waiver coupons |
-| `UPLOAD_DIR` | Local private image folder; defaults to `./uploads` |
-| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Optional registration checkout credentials |
-
-A legacy `SUPABASE_SERVICE_ROLE_KEY` is also supported instead of `SUPABASE_SECRET_KEY`. Never prefix either secret with `NEXT_PUBLIC_`, put it in frontend code, or commit `.env.local`.
-
-The connected **Shia-Matrimonial** Supabase project already has the schema applied. For a fresh project, run `supabase/schema.sql` once in the Supabase SQL Editor. In **Authentication → URL Configuration**, set the Site URL and allow your local and production `/auth/callback` URLs. Enable email/password authentication. Email confirmation is supported through the PKCE callback. For confirmation links that should also work on a different browser/device, configure the confirmation template to use `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`.
-
-## CRUD and application routes
-
-| Method / route | Behavior |
-| --- | --- |
-| `POST /api/auth` | Create an account or sign in using email/password |
-| `POST /auth/signout` | Sign out |
-| `GET /api/profiles` | Read your profile |
-| `POST /api/profiles` | Create your profile |
-| `PATCH /api/profiles` | Update your profile |
-| `DELETE /api/profiles` | Delete your profile, connections, conversations, payments and local photo; retain your login account |
-| `GET /api/app` | Anonymous discovery projections, your requests and support enquiries |
-| `POST /api/app` | Requests, accept/decline, preferences, chat, blocking, enquiries and fee waivers |
-| `GET /api/app?chat=…` | Read an accepted connection's messages |
-| `POST /api/photo` | Upload/replace your image; revoke previous photo permissions |
-| `GET /api/photo?profile=…` | Read your own photo or a photo shared with your accepted connection |
-| `DELETE /api/photo` | Delete your photo and its sharing permissions |
-| `POST /api/payment` | Optional Razorpay order, verification and payment recovery |
-
-Profiles are limited to adults and require the registration oath. Registration remains ₹100 once, or an administrator-issued, account-bound waiver coupon. Checkout stays disabled unless payment credentials are configured. Preview members are fictional and stored only in browser memory.
-
-## Local images and hosting
-
-Images are decoded, resized and rewritten as JPEG files in `UPLOAD_DIR`, outside `public/`. The server removes image metadata and serves files only through authorized API requests. Uploads are limited to JPEG/PNG and 5 MB. The database stores the filename, not the image bytes. Uploaded images and environment secrets are excluded from Git.
-
-For production with local uploads, run the app on a VPS or another Node.js server with persistent disk:
-
-```bash
-npm run build
-npm start
+```ini
+DATABASE_URL="file:./dev.db"
+ADMIN_EMAIL=admin@sukoon.dev
+ADMIN_PASSWORD=admin123
+SESSION_SECRET=sukoon-dev-secret-change-in-production-2026
+UPLOAD_DIR=./uploads
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
 ```
 
-Mount a persistent directory at `UPLOAD_DIR` and back it up along with the database. Multiple application instances must share that directory.
+## Core Matrimonial Principles
 
-**Vercel supports the Next.js CRUD app, but does not provide persistent writable local disk for uploaded images.** This implementation explicitly rejects uploads on Vercel rather than pretending to save files that will disappear. Reading images uploaded to another server is also unavailable on Vercel without a shared filesystem. To keep local uploads, host on a server with persistent disk. No external image storage service is configured.
-
-## Access controls
-
-Every private API operation verifies the Supabase user with `auth.getUser()`, then enforces ownership and connection consent on the server. No client-supplied identity headers are trusted. Administrative permissions use the server's `ADMIN_EMAIL`, not editable user metadata.
-
-All seven tables enable RLS and revoke direct access from `anon` and `authenticated`. This is deliberate: the browser does not query member tables directly. Only the server-only secret may access them after route authorization. Transaction functions use invoker privileges, have fixed search paths, and are executable only by `service_role`. Waiver redemption, payments, photo replacement, profile deletion and blocking update related records atomically.
-
-No live Sites user records or photos are imported. The previous Sites deployment is a separate application; this repository targets independent hosting.
-
-## Verification
-
-```bash
-npm run typecheck
-npm test
-npm run build
-```
-
-The route tests cover private discovery projections, profile ownership, create/update/delete, acceptance, chat and photo access. Local image tests cover real encoding and filesystem read/delete. The Supabase schema and transaction helpers are verified against the connected Postgres project using temporary records rolled back after the checks.
+1. **Discovery Privacy**: Full names, account email addresses, and photos remain strictly private during discovery.
+2. **Consent-First Matching**: When a connection request is accepted, names and emails are revealed to both participants.
+3. **Connection-Specific Photo Sharing**: Uploaded photos are hidden by default and require individual consent per connection.
+4. **End-to-End Governance**: Administrators can review community safety flags and issue one-time fee waiver coupons directly from the `/admin` portal.

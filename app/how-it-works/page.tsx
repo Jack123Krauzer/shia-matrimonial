@@ -1,0 +1,12 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { PublicShell, actionClass } from '@/app/public-shell';
+export const metadata: Metadata = { title: 'How Shia Matrimony Works', description: 'Learn how to create a Sukoon profile, explore shared values, and connect with mutual consent.', alternates: { canonical: '/how-it-works' } };
+const steps = [
+  ['Begin with your story', 'Create an account and a truthful profile with your values, education, interests, and hopes for marriage. Profiles can be self-managed or family-managed with the adult’s permission.'],
+  ['Complete your registration', 'Registration costs ₹100 once, with no recurring subscription. If you need a fee waiver, send an enquiry through Contact & support after signing in. An administrator checks your submitted details before approving your profile. Discovery opens only after both approval and payment or a fee waiver.'],
+  ['Discover shared values', 'Explore introductions using age, location, community, and values. Names, emails, and photographs stay private during discovery.'],
+  ['Connect by mutual consent', 'Send a respectful introduction. Acceptance reveals both people’s full names and account emails, and opens a conversation. Photos need separate permission for each connection.'],
+  ['Take the next step thoughtfully', 'Get to know each other at a comfortable pace, involve your family when it feels right, and independently verify important information. You can close or block a connection at any time.'],
+];
+export default function HowItWorks(){ return <PublicShell><section className="mx-auto max-w-4xl px-6 py-16 md:py-24"><p className="mb-5 text-xs tracking-[.2em] text-accent">A THOUGHTFUL PATH</p><h1 className="font-serif text-5xl leading-tight md:text-6xl">From shared values<br/>to a shared future.</h1><p className="mt-6 max-w-xl text-lg leading-8 text-muted">Simple steps. Clear choices. Space to find a connection that feels right for you.</p><ol className="my-14 grid gap-5">{steps.map(([title,copy],i)=><li key={title} className="flex gap-5 rounded-2xl border border-border bg-white p-6 md:p-8"><span className="font-serif text-3xl text-accent">0{i+1}</span><div><h2 className="font-serif text-2xl">{title}</h2><p className="mt-3 text-sm leading-7 text-muted">{copy}</p></div></li>)}</ol><Link href="/auth?mode=signup" className={actionClass}>Begin your journey</Link></section></PublicShell>; }

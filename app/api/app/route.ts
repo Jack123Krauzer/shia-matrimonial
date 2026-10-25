@@ -1,43 +1,70 @@
-import { currentUser, database, authConfigured } from '../../../lib/supabase/server';
-import { result, settings, id, now, age, publicColumns, publicProfile, isBlocked, active, connection, profile, str, choice, hasContact, fail, sameOrigin, json, handleError, recordId } from '../../../lib/store';
+import { currentUser } from '../../../lib/auth';
+import { prisma } from '../../../lib/prisma';
+import { canDiscover, visibleProfileWhere } from '@/lib/profile-access';
+import { settings, id, now, age, publicProfile, str, choice, hasContact, fail, sameOrigin, json, handleError, recordId } from '../../../lib/store';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-function administrator(email: string) { return !!settings().ADMIN_EMAIL && settings().ADMIN_EMAIL!.toLowerCase() === email.toLowerCase(); }
 
 export async function GET(req: Request) {
   try {
     const user = await currentUser();
-    if (!user) return json({ signedIn: false, configured: authConfigured(), me: null, matches: [], requests: [], support: [] });
-    const db = database(), p = await profile(db, user.userId), admin = administrator(user.email), url = new URL(req.url);
+    if (!user) return json({ signedIn: false, me: null, matches: [], requests: [], support: [] });
+    const p = await prisma.profile.findUnique({ where: { userId: user.userId } });
+    const admin = user.isAdmin;
+    const url = new URL(req.url);
+
     if (url.searchParams.has('chat')) {
-      if (!p) fail('Register first.', 403);
-      const cid = recordId(url.searchParams.get('chat')); await connection(db, cid, p.id, true);
-      const rows = await result<any[]>(db.from('messages').select('id,sender,body,created_at').eq('connection_id', cid).order('created_at', { ascending: false }).limit(200));
-      return json({ messages: rows.reverse() });
+      if (!p || !canDiscover(p)) fail('Admin approval and a completed registration fee or waiver are required.', 403);
+      const cid = recordId(url.searchParams.get('chat'));
+      const conn = await prisma.connection.findFirst({ where: { id: cid, OR: [{ senderId: p.id }, { receiverId: p.id }], status: 'accepted' } });
+      if (!conn) fail('Connection not found.', 404);
+      const otherId = conn.senderId === p.id ? conn.receiverId : conn.senderId;
+      if (!await prisma.profile.findFirst({ where: { id: otherId, ...visibleProfileWhere } })) fail('This profile is unavailable.', 403);
+      if (await prisma.block.findFirst({ where: { OR: [{ blockerId: p.id, blockedId: otherId }, { blockerId: otherId, blockedId: p.id }] } })) fail('This connection is unavailable.', 403);
+      const rows = await prisma.message.findMany({ where: { connectionId: cid }, orderBy: { createdAt: 'desc' }, take: 200, select: { id: true, senderId: true, body: true, createdAt: true } });
+      return json({ messages: rows.reverse().map((m: any) => ({ id: m.id, sender: m.senderId, body: m.body, created_at: m.createdAt.toISOString() })) });
     }
+
     let matches: any[] = [], requests: any[] = [];
-    if (p?.status === 'active') {
-      const [blocked, rows, connections] = await Promise.all([
-        result<any[]>(db.from('blocks').select('blocker,blocked').or(`blocker.eq.${p.id},blocked.eq.${p.id}`)),
-        result<any[]>(db.from('profiles').select(publicColumns).eq('status', 'active').neq('id', p.id).limit(200)),
-        result<any[]>(db.from('connections').select('*').or(`sender.eq.${p.id},receiver.eq.${p.id}`).order('created_at', { ascending: false }).limit(200)),
+    if (p && canDiscover(p)) {
+      const [blocks, rows, connections] = await Promise.all([
+        prisma.block.findMany({ where: { OR: [{ blockerId: p.id }, { blockedId: p.id }] }, select: { blockerId: true, blockedId: true } }),
+        prisma.profile.findMany({ where: { ...visibleProfileWhere, NOT: { id: p.id } }, take: 200 }),
+        prisma.connection.findMany({ where: { OR: [{ senderId: p.id }, { receiverId: p.id }] }, orderBy: { createdAt: 'desc' }, take: 200 }),
       ]);
-      const hidden = new Set(blocked.map(b => b.blocker === p.id ? b.blocked : b.blocker));
-      matches = rows.filter(r => !hidden.has(r.id)).map(publicProfile);
-      const otherIds = [...new Set(connections.map(c => c.sender === p.id ? c.receiver : c.sender))].filter(id => !hidden.has(id));
-      const others = otherIds.length ? await result<any[]>(db.from('profiles').select('*').in('id', otherIds)) : [];
-      const byId = new Map(others.map(other => [other.id, other]));
-      for (const c of connections) {
-        const other = byId.get(c.sender === p.id ? c.receiver : c.sender);
+      const hidden = new Set(blocks.map((b: any) => b.blockerId === p.id ? b.blockedId : b.blockerId));
+      matches = rows.filter((r: any) => !hidden.has(r.id)).map(publicProfile);
+      const otherIds = [...new Set(connections.map((c: any) => c.senderId === p.id ? c.receiverId : c.senderId))].filter(oid => !hidden.has(oid));
+      const others = otherIds.length ? await prisma.profile.findMany({ where: { id: { in: otherIds }, ...visibleProfileWhere } }) : [];
+      const byId = new Map<string, any>(others.map((o: any) => [o.id, o]));
+      for (const c of connections as any[]) {
+        const other = byId.get(c.senderId === p.id ? c.receiverId : c.senderId);
         if (!other) continue;
         const accepted = c.status === 'accepted' && other.status === 'active';
-        requests.push({ id: c.id, other: publicProfile(other), direction: c.receiver === p.id ? 'incoming' : 'outgoing', status: accepted ? 'accepted' : c.status === 'accepted' ? 'closed' : c.status, note: c.note, createdAt: c.created_at,
-          ...(accepted ? { details: { name: other.name, email: other.email }, photoShared: c.sender === other.id ? c.sender_photo : c.receiver_photo, myPhotoShared: c.sender === p.id ? c.sender_photo : c.receiver_photo } : {}) });
+        requests.push({
+          id: c.id, other: publicProfile(other),
+          direction: c.receiverId === p.id ? 'incoming' : 'outgoing',
+          status: accepted ? 'accepted' : c.status === 'accepted' ? 'closed' : c.status,
+          note: c.note, createdAt: c.createdAt.toISOString(),
+          ...(accepted ? {
+            details: { name: other.name, email: other.email },
+            photoShared: c.senderId === other.id ? c.senderPhoto : c.receiverPhoto,
+            myPhotoShared: c.senderId === p.id ? c.senderPhoto : c.receiverPhoto
+          } : {})
+        });
       }
     }
-    const tickets = await result(db.from('support').select('id,category,message,status,coupon,created_at').eq('user_id', user.userId).order('created_at', { ascending: false }).limit(30));
-    const adminTickets = admin ? await result(db.from('support').select('*').order('created_at', { ascending: false }).limit(100)) : undefined;
-    return json({ signedIn: true, me: p ? { ...publicProfile(p), name: p.name, email: p.email, dob: p.dob, status: p.status, fee: p.fee, prefMin: p.pref_min, prefMax: p.pref_max, prefCity: p.pref_city } : null, matches, requests, support: tickets, admin, adminTickets, paymentsReady: !!(settings().RAZORPAY_KEY_ID && settings().RAZORPAY_KEY_SECRET) });
+    const tickets = await prisma.support.findMany({ where: { userId: user.userId }, orderBy: { createdAt: 'desc' }, take: 30, select: { id: true, category: true, message: true, status: true, coupon: true, createdAt: true } });
+    const adminTickets = admin ? await prisma.support.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }) : undefined;
+    return json({
+      signedIn: true,
+      account: { id: user.userId, email: user.email },
+      me: p ? { ...publicProfile(p), name: p.name, email: p.email, dob: p.dob, status: p.status, fee: p.fee, prefMin: p.prefMin, prefMax: p.prefMax, prefCity: p.prefCity } : null,
+      matches, requests,
+      support: tickets.map((t: any) => ({ ...t, created_at: t.createdAt.toISOString() })),
+      admin, adminTickets: adminTickets?.map((t: any) => ({ ...t, email: t.email, created_at: t.createdAt.toISOString() })),
+      paymentsReady: !!(settings().RAZORPAY_KEY_ID && settings().RAZORPAY_KEY_SECRET)
+    });
   } catch (e) { return handleError(e); }
 }
 
@@ -47,9 +74,10 @@ export async function POST(req: Request) {
     const user = await currentUser(); if (!user) fail('Sign in to continue.', 401);
     if (Number(req.headers.get('content-length') || 0) > 12000) fail('Request too large.', 413);
     const raw = await req.text(); if (raw.length > 12000) fail('Request too large.', 413);
-    const b = JSON.parse(raw), db = database();
+    const b = JSON.parse(raw);
+
     if (b.action === 'register' || b.action === 'updateProfile') {
-      const existing = await profile(db, user.userId);
+      const existing = await prisma.profile.findUnique({ where: { userId: user.userId } });
       if (b.action === 'register' && existing) fail('You already have a profile.');
       if (b.action === 'updateProfile' && !existing) fail('Create a profile first.', 403);
       if (b.oath !== true || b.guardianConsent !== true) fail('Please agree to the oath, terms, and profile consent.');
@@ -60,63 +88,129 @@ export async function POST(req: Request) {
       const min = Number(b.prefMin), max = Number(b.prefMax); if (!Number.isInteger(min) || !Number.isInteger(max) || min < 18 || max > 100 || min > max) fail('Please choose a valid age preference.');
       const prefCity = typeof b.prefCity === 'string' ? b.prefCity.trim().slice(0, 120) : '';
       if ([city, profession, education, language, about, prefCity].some(hasContact)) fail('Keep contact details out of your discovery profile. Share them only after acceptance.');
-      const fields = { email: user.email, name, dob, gender, city, profession, education, sect, language, marital, manager, about, values: b.values, pref_min: min, pref_max: max, pref_city: prefCity, oath_at: now() };
-      if (existing) await result(db.from('profiles').update(fields).eq('user_id', user.userId));
-      else await result(db.from('profiles').insert({ ...fields, id: 'SH-' + crypto.randomUUID().slice(0, 8).toUpperCase(), user_id: user.userId, email: user.email }));
+      const fields = { email: user.email, name, dob, gender, city, profession, education, sect, language, marital, manager, about, values: JSON.stringify(b.values), prefMin: min, prefMax: max, prefCity, oathAt: now() };
+      if (existing) await prisma.profile.update({ where: { userId: user.userId }, data: { ...fields, status: existing.status === 'suspended' ? 'suspended' : 'pending' } });
+      else await prisma.profile.create({ data: { ...fields, id: 'SH-' + crypto.randomUUID().slice(0, 8).toUpperCase(), userId: user.userId } });
       return json({ ok: true });
     }
+
     if (b.action === 'deleteProfile') {
-      const oldPhoto = await result<string | null>(db.rpc('delete_member_profile', { p_user: user.userId }));
-      if (oldPhoto) { const { removeLocalPhoto } = await import('../../../lib/photos'); await removeLocalPhoto(oldPhoto); }
+      const p = await prisma.profile.findUnique({ where: { userId: user.userId } });
+      if (p) {
+        const oldPhoto = p.photoKey;
+        await prisma.profile.delete({ where: { id: p.id } });
+        if (oldPhoto) { const { removeLocalPhoto } = await import('../../../lib/photos'); await removeLocalPhoto(oldPhoto); }
+      }
       return json({ ok: true });
     }
+
     if (b.action === 'support') {
       const category = choice(b.category, ['Fee waiver', 'Safety concern', 'General enquiry']), message = str(b.message, 10, 1200);
-      const recent = await result<any[]>(db.from('support').select('id').eq('user_id', user.userId).gt('created_at', new Date(Date.now() - 86400000).toISOString()).limit(5));
+      const recent = await prisma.support.findMany({ where: { userId: user.userId, createdAt: { gt: new Date(Date.now() - 86400000) } }, take: 5 });
       if (recent.length >= 5) fail('You have already contacted us today. Please wait for a reply.', 429);
-      await result(db.from('support').insert({ id: id(), user_id: user.userId, email: user.email, category, message })); return json({ ok: true });
+      await prisma.support.create({ data: { id: id(), userId: user.userId, email: user.email, category, message } });
+      return json({ ok: true });
     }
+
     if (b.action === 'issueCoupon' || b.action === 'resolveTicket') {
-      if (!administrator(user.email)) fail('Administrator access required.', 403);
+      if (!user.isAdmin) fail('Administrator access required.', 403);
       const ticketId = recordId(b.ticketId);
-      if (b.action === 'resolveTicket') { await result(db.from('support').update({ status: 'resolved' }).eq('id', ticketId)); return json({ ok: true }); }
+      if (b.action === 'resolveTicket') {
+        await prisma.support.update({ where: { id: ticketId }, data: { status: 'resolved' } });
+        return json({ ok: true });
+      }
+      const ticket = await prisma.support.findUnique({ where: { id: ticketId } });
+      if (!ticket || ticket.category !== 'Fee waiver' || ticket.coupon) fail('This enquiry is unavailable or already has a coupon.');
       const code = 'SU-' + crypto.randomUUID().replaceAll('-', '').slice(0, 16).toUpperCase();
-      await result(db.rpc('issue_waiver_coupon', { p_ticket: ticketId, p_code: code })); return json({ ok: true, code });
+      await prisma.coupon.create({ data: { code, userId: ticket.userId } });
+      await prisma.support.update({ where: { id: ticketId }, data: { status: 'approved', coupon: code } });
+      return json({ ok: true, code });
     }
-    if (b.action === 'redeem') { await result(db.rpc('redeem_waiver_coupon', { p_user: user.userId, p_code: str(b.code).toUpperCase() })); return json({ ok: true }); }
-    const p = await active(db, user.userId);
+
+    if (b.action === 'redeem') {
+      const code = str(b.code).toUpperCase();
+      const p = await prisma.profile.findUnique({ where: { userId: user.userId } });
+      if (!p || p.fee !== 'unpaid') fail('No registration fee is outstanding.');
+      const coupon = await prisma.coupon.findUnique({ where: { code } });
+      if (!coupon || coupon.userId !== user.userId || coupon.redeemedAt) fail('That coupon is invalid or has already been used.');
+      await prisma.coupon.update({ where: { code }, data: { redeemedAt: new Date() } });
+      await prisma.profile.update({ where: { id: p.id }, data: { fee: 'waived' } });
+      return json({ ok: true });
+    }
+
+    // Actions requiring an active profile
+    const p = await prisma.profile.findUnique({ where: { userId: user.userId } });
+    if (!p) fail('Create your profile first.', 403);
+
     if (b.action === 'preferences') {
       const min = Number(b.min), max = Number(b.max); if (!Number.isInteger(min) || !Number.isInteger(max) || min < 18 || max > 100 || min > max) fail('Choose a valid age range.');
       const city = typeof b.city === 'string' ? b.city.trim().slice(0, 120) : ''; if (hasContact(city)) fail('Keep contact details private.');
-      await result(db.from('profiles').update({ pref_min: min, pref_max: max, pref_city: city }).eq('id', p.id)); return json({ ok: true });
+      await prisma.profile.update({ where: { id: p.id }, data: { prefMin: min, prefMax: max, prefCity: city } });
+      return json({ ok: true });
     }
+
+    if (!canDiscover(p)) fail('Your profile must be approved by an admin and the fee paid or waived before connecting.', 403);
+
     if (b.action === 'request') {
-      const target = recordId(b.target); if (target === p.id || await isBlocked(db, p.id, target)) fail('This profile is unavailable.');
-      const other = await result(db.from('profiles').select('id').eq('id', target).eq('status', 'active').maybeSingle()); if (!other) fail('Profile not available.', 404);
+      const target = recordId(b.target); if (target === p.id) fail('This profile is unavailable.');
+      const blocked = await prisma.block.findFirst({ where: { OR: [{ blockerId: p.id, blockedId: target }, { blockerId: target, blockedId: p.id }] } });
+      if (blocked) fail('This profile is unavailable.');
+      const other = await prisma.profile.findFirst({ where: { id: target, ...visibleProfileWhere } }); if (!other) fail('Profile not available.', 404);
       if (b.consent !== true) fail('Confirm your consent to share your name and email on acceptance.');
       const note = str(b.note, 1, 500); if (hasContact(note)) fail('Keep contact details out of your request. Share them after acceptance.');
-      const recent = await result<any[]>(db.from('connections').select('id').eq('sender', p.id).gt('created_at', new Date(Date.now() - 86400000).toISOString()).limit(10)); if (recent.length >= 10) fail('Please wait until tomorrow to send more requests.', 429);
-      await result(db.from('connections').insert({ id: id(), sender: p.id, receiver: target, pair: [p.id, target].sort().join(':'), note })); return json({ ok: true });
+      const recent = await prisma.connection.findMany({ where: { senderId: p.id, createdAt: { gt: new Date(Date.now() - 86400000) } }, take: 10 });
+      if (recent.length >= 10) fail('Please wait until tomorrow to send more requests.', 429);
+      const pair = [p.id, target].sort().join(':');
+      const existingConn = await prisma.connection.findUnique({ where: { pair } });
+      if (existingConn) fail('This record already exists.', 409);
+      await prisma.connection.create({ data: { id: id(), senderId: p.id, receiverId: target, pair, note } });
+      return json({ ok: true });
     }
+
     if (['accept', 'decline', 'withdraw', 'close', 'photoConsent', 'message', 'block'].includes(b.action)) {
-      const c = await connection(db, recordId(b.connectionId), p.id, ['message', 'photoConsent'].includes(b.action));
+      const cid = recordId(b.connectionId);
+      const c = await prisma.connection.findFirst({ where: { id: cid, OR: [{ senderId: p.id }, { receiverId: p.id }] } });
+      if (!c) fail('Connection not found.', 404);
+      if (['accept', 'message', 'photoConsent'].includes(b.action)) {
+        const otherId = c.senderId === p.id ? c.receiverId : c.senderId;
+        if (!await prisma.profile.findFirst({ where: { id: otherId, ...visibleProfileWhere } })) fail('This profile is unavailable.', 403);
+      }
+      if (['message', 'photoConsent'].includes(b.action) && c.status !== 'accepted') fail('Both people must consent before chatting.', 403);
+      const blocked = await prisma.block.findFirst({ where: { OR: [{ blockerId: c.senderId, blockedId: c.receiverId }, { blockerId: c.receiverId, blockedId: c.senderId }] } });
+      if (blocked) fail('This connection is unavailable.', 403);
+
       if (b.action === 'accept' || b.action === 'decline') {
-        if (c.receiver !== p.id || c.status !== 'pending') fail('Only the recipient can respond to a pending request.', 403);
+        if (c.receiverId !== p.id || c.status !== 'pending') fail('Only the recipient can respond to a pending request.', 403);
         if (b.action === 'accept' && b.consent !== true) fail('Confirm your consent to share your name and email.');
-        const other = await result(db.from('profiles').select('id').eq('id', c.sender).eq('status', 'active').maybeSingle()); if (!other) fail('This profile is unavailable.');
-        const rows = await result<any[]>(db.from('connections').update({ status: b.action === 'accept' ? 'accepted' : 'declined', accepted_at: b.action === 'accept' ? now() : null }).eq('id', c.id).eq('status', 'pending').select('id'));
-        if (!rows.length) fail('This request has already been handled.', 409); return json({ ok: true });
+        const other = await prisma.profile.findFirst({ where: { id: c.senderId, status: 'active' } }); if (!other) fail('This profile is unavailable.');
+        await prisma.connection.update({ where: { id: c.id }, data: { status: b.action === 'accept' ? 'accepted' : 'declined', acceptedAt: b.action === 'accept' ? new Date() : null } });
+        return json({ ok: true });
       }
       if (b.action === 'withdraw' || b.action === 'close') {
-        if (b.action === 'withdraw' && (c.sender !== p.id || c.status !== 'pending')) fail('Only pending sent requests can be withdrawn.');
-        await result(db.from('connections').update({ status: 'closed', sender_photo: false, receiver_photo: false }).eq('id', c.id)); return json({ ok: true });
+        if (b.action === 'withdraw' && (c.senderId !== p.id || c.status !== 'pending')) fail('Only pending sent requests can be withdrawn.');
+        await prisma.connection.update({ where: { id: c.id }, data: { status: 'closed', senderPhoto: false, receiverPhoto: false } });
+        return json({ ok: true });
       }
       if (b.action === 'photoConsent') {
         if (typeof b.share !== 'boolean') fail('Choose a valid sharing option.');
-        await result(db.from('connections').update({ [c.sender === p.id ? 'sender_photo' : 'receiver_photo']: b.share }).eq('id', c.id).eq('status', 'accepted')); return json({ ok: true });
+        const field = c.senderId === p.id ? 'senderPhoto' : 'receiverPhoto';
+        await prisma.connection.update({ where: { id: c.id, status: 'accepted' }, data: { [field]: b.share } });
+        return json({ ok: true });
       }
-      if (b.action === 'message') { await result(db.rpc('send_connection_message', { p_profile: p.id, p_connection: c.id, p_body: str(b.body, 1, 2000) })); return json({ ok: true }); }
-      if (b.action === 'block') { await result(db.rpc('block_member_connection', { p_profile: p.id, p_connection: c.id, p_reason: str(b.reason || 'Personal boundary') })); return json({ ok: true }); }
+      if (b.action === 'message') {
+        const body = str(b.body, 1, 2000);
+        const recentMsgs = await prisma.message.count({ where: { senderId: p.id, createdAt: { gt: new Date(Date.now() - 60000) } } });
+        if (recentMsgs >= 20) fail('Please wait a moment before sending more messages.');
+        await prisma.message.create({ data: { connectionId: c.id, senderId: p.id, body } });
+        return json({ ok: true });
+      }
+      if (b.action === 'block') {
+        const otherId = c.senderId === p.id ? c.receiverId : c.senderId;
+        const reason = str(b.reason || 'Personal boundary');
+        await prisma.block.upsert({ where: { blockerId_blockedId: { blockerId: p.id, blockedId: otherId } }, create: { blockerId: p.id, blockedId: otherId, reason }, update: {} });
+        await prisma.connection.update({ where: { id: c.id }, data: { status: 'closed', senderPhoto: false, receiverPhoto: false } });
+        return json({ ok: true });
+      }
     }
     fail('Unknown action.');
   } catch (e) { return handleError(e); }
