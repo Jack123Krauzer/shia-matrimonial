@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import crypto from "crypto";
 import { demoAccounts } from './demo-accounts';
+import { demoLoginAllowed } from './demo-access.mjs';
 import { AppError } from './store';
 
 const SESSION_COOKIE = "sukoon_session";
@@ -43,10 +44,10 @@ export async function signUp(email: string, password: string) {
 
 export async function signIn(email: string, password: string, options?: { adminOnly?: boolean }) {
   const normalizedEmail = email.trim().toLowerCase();
-  if (process.env.NODE_ENV !== 'development' && Object.values(demoAccounts).some(account => account.email === normalizedEmail)) {
-    throw new Error('Demo accounts are available only in local development.');
+  if (!demoLoginAllowed() && Object.values(demoAccounts).some(account => account.email === normalizedEmail)) {
+    throw new AppError('Demo sign-in is not enabled on this site. Use your registered account or configured administrator credentials.', 403);
   }
-  if (process.env.NODE_ENV === 'development') {
+  if (demoLoginAllowed()) {
     const demo = Object.entries(demoAccounts).find(([, account]) => account.email === normalizedEmail && account.password === password);
     if (demo) {
       const [role] = demo;
@@ -94,7 +95,7 @@ export async function currentUser(): Promise<{ userId: string; email: string; is
       if (session) await prisma.session.delete({ where: { id: session.id } }).catch(() => {});
       return null;
     }
-    if (process.env.NODE_ENV !== 'development' && Object.values(demoAccounts).some(account => account.email === session.user.email.toLowerCase())) return null;
+    if (!demoLoginAllowed() && Object.values(demoAccounts).some(account => account.email === session.user.email.toLowerCase())) return null;
     const adminEmail = process.env.ADMIN_EMAIL || "admin@sukoon.dev";
     const isAdmin = session.user.isAdmin || session.user.email.toLowerCase() === adminEmail.toLowerCase();
     return { userId: session.user.id, email: session.user.email, isAdmin };

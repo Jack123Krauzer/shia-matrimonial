@@ -25,7 +25,7 @@ A Next.js matrimonial platform designed for intentional Shia matrimonial unions 
 - **Authentication**: Custom cookie-based session management (`sukoon_session` with `httpOnly`, `sameSite: 'lax'`) using PBKDF2 password hashing. No third-party auth dependencies.
 - **Private Routing**: Next.js `middleware.ts` enforces private routing. Unauthenticated visitors can read public information pages; member routes redirect to `/auth`.
 - **Admin Governance Panel**: Dedicated `/admin` control center for managing member profiles (activate, suspend, delete), issuing fee waiver coupons, reviewing safety concerns, and auditing consent-based connections.
-- **Account access**: Everyone uses the same email/password sign-in and account creation flow. In local development, Member demo and Admin demo buttons use `member@example.test` and `admin@example.test` with password `SukoonDemo123!`. These accounts are provisioned on first demo sign-in and blocked outside development, including existing demo sessions. Administrator provisioning uses `ADMIN_EMAIL` and `ADMIN_PASSWORD` when configured.
+- **Account access**: Everyone uses the same email/password sign-in and account creation flow. In local development, Member demo and Admin demo buttons use `member@example.test` and `admin@example.test` with password `SukoonDemo123!`. Demo access outside development requires `ENABLE_DEMO_ACCOUNTS=true`. Turning that setting off blocks both new demo logins and existing demo sessions. Shared demo administrators have full dashboard access. Administrator provisioning uses `ADMIN_EMAIL` and `ADMIN_PASSWORD` when configured.
 
 ## Running Locally
 

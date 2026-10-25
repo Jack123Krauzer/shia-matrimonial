@@ -17,7 +17,7 @@ The app uses Prisma's libSQL adapter for both hosted Turso and local SQLite. Its
 3. Add `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` to the Vercel project's **Production** environment. The token must use **Secret** and must never have a `NEXT_PUBLIC_` prefix. Use a separate database/token for Preview if preview deployments need database access.
 4. Keep your real `ADMIN_EMAIL` and `ADMIN_PASSWORD` in Vercel, and set `NEXT_PUBLIC_SITE_URL=https://gsuit.in`. The admin account is created on first sign-in only when it doesn't already exist. Changing the environment password does not change an existing account's stored password.
 5. Push the changes to the production branch and redeploy. The build validates the connection configuration, generates Prisma Client, initializes missing tables without deleting existing records, and builds Next.js. A deployment with missing Turso credentials fails the build rather than silently using a temporary local database.
-6. Test `/admin/login`, member registration, admin approval, and private photo sharing. Demo logins remain development-only.
+6. Test `/admin/login`, member registration, admin approval, and private photo sharing. Demo logins are allowed in development. Production can explicitly opt in with `ENABLE_DEMO_ACCOUNTS=true`; changing it to `false` and redeploying also blocks existing demo sessions. Shared demo administrators have full access to member data, so this setting is intended for a demonstration site. Login-page demo buttons remain development-only.
 
 After this one-time connection setup, normal code deployments do not require re-entering the credentials. Nothing is stored in localStorage or sessionStorage; only the session cookie is stored in the browser.
 
