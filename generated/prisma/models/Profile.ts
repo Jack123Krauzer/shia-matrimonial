@@ -365,6 +365,7 @@ export type ProfileWhereInput = {
   oathAt?: Prisma.StringFilter<"Profile"> | string
   createdAt?: Prisma.DateTimeFilter<"Profile"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  photo?: Prisma.XOR<Prisma.PhotoNullableScalarRelationFilter, Prisma.PhotoWhereInput> | null
   sentConnections?: Prisma.ConnectionListRelationFilter
   recvConnections?: Prisma.ConnectionListRelationFilter
   sentMessages?: Prisma.MessageListRelationFilter
@@ -398,6 +399,7 @@ export type ProfileOrderByWithRelationInput = {
   oathAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
+  photo?: Prisma.PhotoOrderByWithRelationInput
   sentConnections?: Prisma.ConnectionOrderByRelationAggregateInput
   recvConnections?: Prisma.ConnectionOrderByRelationAggregateInput
   sentMessages?: Prisma.MessageOrderByRelationAggregateInput
@@ -434,6 +436,7 @@ export type ProfileWhereUniqueInput = Prisma.AtLeast<{
   oathAt?: Prisma.StringFilter<"Profile"> | string
   createdAt?: Prisma.DateTimeFilter<"Profile"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  photo?: Prisma.XOR<Prisma.PhotoNullableScalarRelationFilter, Prisma.PhotoWhereInput> | null
   sentConnections?: Prisma.ConnectionListRelationFilter
   recvConnections?: Prisma.ConnectionListRelationFilter
   sentMessages?: Prisma.MessageListRelationFilter
@@ -526,6 +529,7 @@ export type ProfileCreateInput = {
   oathAt: string
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutProfileInput
+  photo?: Prisma.PhotoCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageCreateNestedManyWithoutSenderInput
@@ -558,6 +562,7 @@ export type ProfileUncheckedCreateInput = {
   fee?: string
   oathAt: string
   createdAt?: Date | string
+  photo?: Prisma.PhotoUncheckedCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -590,6 +595,7 @@ export type ProfileUpdateInput = {
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
+  photo?: Prisma.PhotoUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUpdateManyWithoutSenderNestedInput
@@ -622,6 +628,7 @@ export type ProfileUncheckedUpdateInput = {
   fee?: Prisma.StringFieldUpdateOperationsInput | string
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  photo?: Prisma.PhotoUncheckedUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -849,6 +856,20 @@ export type NullableStringFieldUpdateOperationsInput = {
   set?: string | null
 }
 
+export type ProfileCreateNestedOneWithoutPhotoInput = {
+  create?: Prisma.XOR<Prisma.ProfileCreateWithoutPhotoInput, Prisma.ProfileUncheckedCreateWithoutPhotoInput>
+  connectOrCreate?: Prisma.ProfileCreateOrConnectWithoutPhotoInput
+  connect?: Prisma.ProfileWhereUniqueInput
+}
+
+export type ProfileUpdateOneRequiredWithoutPhotoNestedInput = {
+  create?: Prisma.XOR<Prisma.ProfileCreateWithoutPhotoInput, Prisma.ProfileUncheckedCreateWithoutPhotoInput>
+  connectOrCreate?: Prisma.ProfileCreateOrConnectWithoutPhotoInput
+  upsert?: Prisma.ProfileUpsertWithoutPhotoInput
+  connect?: Prisma.ProfileWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProfileUpdateToOneWithWhereWithoutPhotoInput, Prisma.ProfileUpdateWithoutPhotoInput>, Prisma.ProfileUncheckedUpdateWithoutPhotoInput>
+}
+
 export type ProfileCreateNestedOneWithoutSentConnectionsInput = {
   create?: Prisma.XOR<Prisma.ProfileCreateWithoutSentConnectionsInput, Prisma.ProfileUncheckedCreateWithoutSentConnectionsInput>
   connectOrCreate?: Prisma.ProfileCreateOrConnectWithoutSentConnectionsInput
@@ -956,6 +977,7 @@ export type ProfileCreateWithoutUserInput = {
   fee?: string
   oathAt: string
   createdAt?: Date | string
+  photo?: Prisma.PhotoCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageCreateNestedManyWithoutSenderInput
@@ -987,6 +1009,7 @@ export type ProfileUncheckedCreateWithoutUserInput = {
   fee?: string
   oathAt: string
   createdAt?: Date | string
+  photo?: Prisma.PhotoUncheckedCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -1034,6 +1057,7 @@ export type ProfileUpdateWithoutUserInput = {
   fee?: Prisma.StringFieldUpdateOperationsInput | string
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  photo?: Prisma.PhotoUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUpdateManyWithoutSenderNestedInput
@@ -1044,6 +1068,151 @@ export type ProfileUpdateWithoutUserInput = {
 
 export type ProfileUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  dob?: Prisma.StringFieldUpdateOperationsInput | string
+  gender?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
+  profession?: Prisma.StringFieldUpdateOperationsInput | string
+  education?: Prisma.StringFieldUpdateOperationsInput | string
+  sect?: Prisma.StringFieldUpdateOperationsInput | string
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  marital?: Prisma.StringFieldUpdateOperationsInput | string
+  manager?: Prisma.StringFieldUpdateOperationsInput | string
+  about?: Prisma.StringFieldUpdateOperationsInput | string
+  values?: Prisma.StringFieldUpdateOperationsInput | string
+  prefMin?: Prisma.IntFieldUpdateOperationsInput | number
+  prefMax?: Prisma.IntFieldUpdateOperationsInput | number
+  prefCity?: Prisma.StringFieldUpdateOperationsInput | string
+  photoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  fee?: Prisma.StringFieldUpdateOperationsInput | string
+  oathAt?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  photo?: Prisma.PhotoUncheckedUpdateOneWithoutProfileNestedInput
+  sentConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutSenderNestedInput
+  recvConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutReceiverNestedInput
+  sentMessages?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
+  blockerBlocks?: Prisma.BlockUncheckedUpdateManyWithoutBlockerNestedInput
+  blockedBlocks?: Prisma.BlockUncheckedUpdateManyWithoutBlockedNestedInput
+  orders?: Prisma.OrderUncheckedUpdateManyWithoutProfileNestedInput
+}
+
+export type ProfileCreateWithoutPhotoInput = {
+  id: string
+  name: string
+  email: string
+  dob: string
+  gender: string
+  city: string
+  profession: string
+  education: string
+  sect: string
+  language: string
+  marital: string
+  manager: string
+  about: string
+  values: string
+  prefMin?: number
+  prefMax?: number
+  prefCity?: string
+  photoKey?: string | null
+  status?: string
+  fee?: string
+  oathAt: string
+  createdAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutProfileInput
+  sentConnections?: Prisma.ConnectionCreateNestedManyWithoutSenderInput
+  recvConnections?: Prisma.ConnectionCreateNestedManyWithoutReceiverInput
+  sentMessages?: Prisma.MessageCreateNestedManyWithoutSenderInput
+  blockerBlocks?: Prisma.BlockCreateNestedManyWithoutBlockerInput
+  blockedBlocks?: Prisma.BlockCreateNestedManyWithoutBlockedInput
+  orders?: Prisma.OrderCreateNestedManyWithoutProfileInput
+}
+
+export type ProfileUncheckedCreateWithoutPhotoInput = {
+  id: string
+  userId: string
+  name: string
+  email: string
+  dob: string
+  gender: string
+  city: string
+  profession: string
+  education: string
+  sect: string
+  language: string
+  marital: string
+  manager: string
+  about: string
+  values: string
+  prefMin?: number
+  prefMax?: number
+  prefCity?: string
+  photoKey?: string | null
+  status?: string
+  fee?: string
+  oathAt: string
+  createdAt?: Date | string
+  sentConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutSenderInput
+  recvConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutReceiverInput
+  sentMessages?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
+  blockerBlocks?: Prisma.BlockUncheckedCreateNestedManyWithoutBlockerInput
+  blockedBlocks?: Prisma.BlockUncheckedCreateNestedManyWithoutBlockedInput
+  orders?: Prisma.OrderUncheckedCreateNestedManyWithoutProfileInput
+}
+
+export type ProfileCreateOrConnectWithoutPhotoInput = {
+  where: Prisma.ProfileWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProfileCreateWithoutPhotoInput, Prisma.ProfileUncheckedCreateWithoutPhotoInput>
+}
+
+export type ProfileUpsertWithoutPhotoInput = {
+  update: Prisma.XOR<Prisma.ProfileUpdateWithoutPhotoInput, Prisma.ProfileUncheckedUpdateWithoutPhotoInput>
+  create: Prisma.XOR<Prisma.ProfileCreateWithoutPhotoInput, Prisma.ProfileUncheckedCreateWithoutPhotoInput>
+  where?: Prisma.ProfileWhereInput
+}
+
+export type ProfileUpdateToOneWithWhereWithoutPhotoInput = {
+  where?: Prisma.ProfileWhereInput
+  data: Prisma.XOR<Prisma.ProfileUpdateWithoutPhotoInput, Prisma.ProfileUncheckedUpdateWithoutPhotoInput>
+}
+
+export type ProfileUpdateWithoutPhotoInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  dob?: Prisma.StringFieldUpdateOperationsInput | string
+  gender?: Prisma.StringFieldUpdateOperationsInput | string
+  city?: Prisma.StringFieldUpdateOperationsInput | string
+  profession?: Prisma.StringFieldUpdateOperationsInput | string
+  education?: Prisma.StringFieldUpdateOperationsInput | string
+  sect?: Prisma.StringFieldUpdateOperationsInput | string
+  language?: Prisma.StringFieldUpdateOperationsInput | string
+  marital?: Prisma.StringFieldUpdateOperationsInput | string
+  manager?: Prisma.StringFieldUpdateOperationsInput | string
+  about?: Prisma.StringFieldUpdateOperationsInput | string
+  values?: Prisma.StringFieldUpdateOperationsInput | string
+  prefMin?: Prisma.IntFieldUpdateOperationsInput | number
+  prefMax?: Prisma.IntFieldUpdateOperationsInput | number
+  prefCity?: Prisma.StringFieldUpdateOperationsInput | string
+  photoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  fee?: Prisma.StringFieldUpdateOperationsInput | string
+  oathAt?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
+  sentConnections?: Prisma.ConnectionUpdateManyWithoutSenderNestedInput
+  recvConnections?: Prisma.ConnectionUpdateManyWithoutReceiverNestedInput
+  sentMessages?: Prisma.MessageUpdateManyWithoutSenderNestedInput
+  blockerBlocks?: Prisma.BlockUpdateManyWithoutBlockerNestedInput
+  blockedBlocks?: Prisma.BlockUpdateManyWithoutBlockedNestedInput
+  orders?: Prisma.OrderUpdateManyWithoutProfileNestedInput
+}
+
+export type ProfileUncheckedUpdateWithoutPhotoInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   dob?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1097,6 +1266,7 @@ export type ProfileCreateWithoutSentConnectionsInput = {
   oathAt: string
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutProfileInput
+  photo?: Prisma.PhotoCreateNestedOneWithoutProfileInput
   recvConnections?: Prisma.ConnectionCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageCreateNestedManyWithoutSenderInput
   blockerBlocks?: Prisma.BlockCreateNestedManyWithoutBlockerInput
@@ -1128,6 +1298,7 @@ export type ProfileUncheckedCreateWithoutSentConnectionsInput = {
   fee?: string
   oathAt: string
   createdAt?: Date | string
+  photo?: Prisma.PhotoUncheckedCreateNestedOneWithoutProfileInput
   recvConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   blockerBlocks?: Prisma.BlockUncheckedCreateNestedManyWithoutBlockerInput
@@ -1164,6 +1335,7 @@ export type ProfileCreateWithoutRecvConnectionsInput = {
   oathAt: string
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutProfileInput
+  photo?: Prisma.PhotoCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionCreateNestedManyWithoutSenderInput
   sentMessages?: Prisma.MessageCreateNestedManyWithoutSenderInput
   blockerBlocks?: Prisma.BlockCreateNestedManyWithoutBlockerInput
@@ -1195,6 +1367,7 @@ export type ProfileUncheckedCreateWithoutRecvConnectionsInput = {
   fee?: string
   oathAt: string
   createdAt?: Date | string
+  photo?: Prisma.PhotoUncheckedCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutSenderInput
   sentMessages?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
   blockerBlocks?: Prisma.BlockUncheckedCreateNestedManyWithoutBlockerInput
@@ -1242,6 +1415,7 @@ export type ProfileUpdateWithoutSentConnectionsInput = {
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
+  photo?: Prisma.PhotoUpdateOneWithoutProfileNestedInput
   recvConnections?: Prisma.ConnectionUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   blockerBlocks?: Prisma.BlockUpdateManyWithoutBlockerNestedInput
@@ -1273,6 +1447,7 @@ export type ProfileUncheckedUpdateWithoutSentConnectionsInput = {
   fee?: Prisma.StringFieldUpdateOperationsInput | string
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  photo?: Prisma.PhotoUncheckedUpdateOneWithoutProfileNestedInput
   recvConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   blockerBlocks?: Prisma.BlockUncheckedUpdateManyWithoutBlockerNestedInput
@@ -1315,6 +1490,7 @@ export type ProfileUpdateWithoutRecvConnectionsInput = {
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
+  photo?: Prisma.PhotoUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUpdateManyWithoutSenderNestedInput
   sentMessages?: Prisma.MessageUpdateManyWithoutSenderNestedInput
   blockerBlocks?: Prisma.BlockUpdateManyWithoutBlockerNestedInput
@@ -1346,6 +1522,7 @@ export type ProfileUncheckedUpdateWithoutRecvConnectionsInput = {
   fee?: Prisma.StringFieldUpdateOperationsInput | string
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  photo?: Prisma.PhotoUncheckedUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutSenderNestedInput
   sentMessages?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
   blockerBlocks?: Prisma.BlockUncheckedUpdateManyWithoutBlockerNestedInput
@@ -1377,6 +1554,7 @@ export type ProfileCreateWithoutSentMessagesInput = {
   oathAt: string
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutProfileInput
+  photo?: Prisma.PhotoCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionCreateNestedManyWithoutReceiverInput
   blockerBlocks?: Prisma.BlockCreateNestedManyWithoutBlockerInput
@@ -1408,6 +1586,7 @@ export type ProfileUncheckedCreateWithoutSentMessagesInput = {
   fee?: string
   oathAt: string
   createdAt?: Date | string
+  photo?: Prisma.PhotoUncheckedCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutReceiverInput
   blockerBlocks?: Prisma.BlockUncheckedCreateNestedManyWithoutBlockerInput
@@ -1455,6 +1634,7 @@ export type ProfileUpdateWithoutSentMessagesInput = {
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
+  photo?: Prisma.PhotoUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUpdateManyWithoutReceiverNestedInput
   blockerBlocks?: Prisma.BlockUpdateManyWithoutBlockerNestedInput
@@ -1486,6 +1666,7 @@ export type ProfileUncheckedUpdateWithoutSentMessagesInput = {
   fee?: Prisma.StringFieldUpdateOperationsInput | string
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  photo?: Prisma.PhotoUncheckedUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutReceiverNestedInput
   blockerBlocks?: Prisma.BlockUncheckedUpdateManyWithoutBlockerNestedInput
@@ -1517,6 +1698,7 @@ export type ProfileCreateWithoutOrdersInput = {
   oathAt: string
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutProfileInput
+  photo?: Prisma.PhotoCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageCreateNestedManyWithoutSenderInput
@@ -1548,6 +1730,7 @@ export type ProfileUncheckedCreateWithoutOrdersInput = {
   fee?: string
   oathAt: string
   createdAt?: Date | string
+  photo?: Prisma.PhotoUncheckedCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -1595,6 +1778,7 @@ export type ProfileUpdateWithoutOrdersInput = {
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
+  photo?: Prisma.PhotoUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUpdateManyWithoutSenderNestedInput
@@ -1626,6 +1810,7 @@ export type ProfileUncheckedUpdateWithoutOrdersInput = {
   fee?: Prisma.StringFieldUpdateOperationsInput | string
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  photo?: Prisma.PhotoUncheckedUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -1657,6 +1842,7 @@ export type ProfileCreateWithoutBlockerBlocksInput = {
   oathAt: string
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutProfileInput
+  photo?: Prisma.PhotoCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageCreateNestedManyWithoutSenderInput
@@ -1688,6 +1874,7 @@ export type ProfileUncheckedCreateWithoutBlockerBlocksInput = {
   fee?: string
   oathAt: string
   createdAt?: Date | string
+  photo?: Prisma.PhotoUncheckedCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -1724,6 +1911,7 @@ export type ProfileCreateWithoutBlockedBlocksInput = {
   oathAt: string
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutProfileInput
+  photo?: Prisma.PhotoCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageCreateNestedManyWithoutSenderInput
@@ -1755,6 +1943,7 @@ export type ProfileUncheckedCreateWithoutBlockedBlocksInput = {
   fee?: string
   oathAt: string
   createdAt?: Date | string
+  photo?: Prisma.PhotoUncheckedCreateNestedOneWithoutProfileInput
   sentConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutSenderInput
   recvConnections?: Prisma.ConnectionUncheckedCreateNestedManyWithoutReceiverInput
   sentMessages?: Prisma.MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -1802,6 +1991,7 @@ export type ProfileUpdateWithoutBlockerBlocksInput = {
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
+  photo?: Prisma.PhotoUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUpdateManyWithoutSenderNestedInput
@@ -1833,6 +2023,7 @@ export type ProfileUncheckedUpdateWithoutBlockerBlocksInput = {
   fee?: Prisma.StringFieldUpdateOperationsInput | string
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  photo?: Prisma.PhotoUncheckedUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -1875,6 +2066,7 @@ export type ProfileUpdateWithoutBlockedBlocksInput = {
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutProfileNestedInput
+  photo?: Prisma.PhotoUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUpdateManyWithoutSenderNestedInput
@@ -1906,6 +2098,7 @@ export type ProfileUncheckedUpdateWithoutBlockedBlocksInput = {
   fee?: Prisma.StringFieldUpdateOperationsInput | string
   oathAt?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  photo?: Prisma.PhotoUncheckedUpdateOneWithoutProfileNestedInput
   sentConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutSenderNestedInput
   recvConnections?: Prisma.ConnectionUncheckedUpdateManyWithoutReceiverNestedInput
   sentMessages?: Prisma.MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -2014,6 +2207,7 @@ export type ProfileSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   oathAt?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  photo?: boolean | Prisma.Profile$photoArgs<ExtArgs>
   sentConnections?: boolean | Prisma.Profile$sentConnectionsArgs<ExtArgs>
   recvConnections?: boolean | Prisma.Profile$recvConnectionsArgs<ExtArgs>
   sentMessages?: boolean | Prisma.Profile$sentMessagesArgs<ExtArgs>
@@ -2106,6 +2300,7 @@ export type ProfileSelectScalar = {
 export type ProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "email" | "dob" | "gender" | "city" | "profession" | "education" | "sect" | "language" | "marital" | "manager" | "about" | "values" | "prefMin" | "prefMax" | "prefCity" | "photoKey" | "status" | "fee" | "oathAt" | "createdAt", ExtArgs["result"]["profile"]>
 export type ProfileInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  photo?: boolean | Prisma.Profile$photoArgs<ExtArgs>
   sentConnections?: boolean | Prisma.Profile$sentConnectionsArgs<ExtArgs>
   recvConnections?: boolean | Prisma.Profile$recvConnectionsArgs<ExtArgs>
   sentMessages?: boolean | Prisma.Profile$sentMessagesArgs<ExtArgs>
@@ -2125,6 +2320,7 @@ export type $ProfilePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   name: "Profile"
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
+    photo: Prisma.$PhotoPayload<ExtArgs> | null
     sentConnections: Prisma.$ConnectionPayload<ExtArgs>[]
     recvConnections: Prisma.$ConnectionPayload<ExtArgs>[]
     sentMessages: Prisma.$MessagePayload<ExtArgs>[]
@@ -2551,6 +2747,7 @@ readonly fields: ProfileFieldRefs;
 export interface Prisma__ProfileClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  photo<T extends Prisma.Profile$photoArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Profile$photoArgs<ExtArgs>>): Prisma.Prisma__PhotoClient<runtime.Types.Result.GetResult<Prisma.$PhotoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   sentConnections<T extends Prisma.Profile$sentConnectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Profile$sentConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   recvConnections<T extends Prisma.Profile$recvConnectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Profile$recvConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sentMessages<T extends Prisma.Profile$sentMessagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Profile$sentMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -3005,6 +3202,25 @@ export type ProfileDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Limit how many Profiles to delete.
    */
   limit?: number
+}
+
+/**
+ * Profile.photo
+ */
+export type Profile$photoArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Photo
+   */
+  select?: Prisma.PhotoSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Photo
+   */
+  omit?: Prisma.PhotoOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PhotoInclude<ExtArgs> | null
+  where?: Prisma.PhotoWhereInput
 }
 
 /**

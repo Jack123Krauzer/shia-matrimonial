@@ -54,6 +54,7 @@ export const ModelName = {
   User: 'User',
   Session: 'Session',
   Profile: 'Profile',
+  Photo: 'Photo',
   Connection: 'Connection',
   Message: 'Message',
   Support: 'Support',
@@ -124,6 +125,16 @@ export const ProfileScalarFieldEnum = {
 } as const
 
 export type ProfileScalarFieldEnum = (typeof ProfileScalarFieldEnum)[keyof typeof ProfileScalarFieldEnum]
+
+
+export const PhotoScalarFieldEnum = {
+  key: 'key',
+  profileId: 'profileId',
+  data: 'data',
+  createdAt: 'createdAt'
+} as const
+
+export type PhotoScalarFieldEnum = (typeof PhotoScalarFieldEnum)[keyof typeof PhotoScalarFieldEnum]
 
 
 export const ConnectionScalarFieldEnum = {

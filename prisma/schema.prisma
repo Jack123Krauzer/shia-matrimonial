@@ -60,6 +60,7 @@ model Profile {
   createdAt  DateTime @default(now()) @map("created_at")
 
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo            Photo?
   sentConnections  Connection[] @relation("sender")
   recvConnections  Connection[] @relation("receiver")
   sentMessages     Message[]    @relation("messageSender")
@@ -68,6 +69,17 @@ model Profile {
   orders           Order[]
 
   @@map("profiles")
+}
+
+model Photo {
+  key       String   @id
+  profileId String   @unique @map("profile_id")
+  data      Bytes
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("photos")
 }
 
 model Connection {

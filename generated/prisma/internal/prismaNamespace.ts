@@ -400,6 +400,7 @@ export const ModelName = {
   User: 'User',
   Session: 'Session',
   Profile: 'Profile',
+  Photo: 'Photo',
   Connection: 'Connection',
   Message: 'Message',
   Support: 'Support',
@@ -421,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "profile" | "connection" | "message" | "support" | "coupon" | "order" | "block"
+    modelProps: "user" | "session" | "profile" | "photo" | "connection" | "message" | "support" | "coupon" | "order" | "block"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -644,6 +645,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ProfileCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ProfileCountAggregateOutputType> | number
+        }
+      }
+    }
+    Photo: {
+      payload: Prisma.$PhotoPayload<ExtArgs>
+      fields: Prisma.PhotoFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PhotoFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PhotoFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload>
+        }
+        findFirst: {
+          args: Prisma.PhotoFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PhotoFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload>
+        }
+        findMany: {
+          args: Prisma.PhotoFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload>[]
+        }
+        create: {
+          args: Prisma.PhotoCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload>
+        }
+        createMany: {
+          args: Prisma.PhotoCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PhotoCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload>[]
+        }
+        delete: {
+          args: Prisma.PhotoDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload>
+        }
+        update: {
+          args: Prisma.PhotoUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload>
+        }
+        deleteMany: {
+          args: Prisma.PhotoDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PhotoUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PhotoUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload>[]
+        }
+        upsert: {
+          args: Prisma.PhotoUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PhotoPayload>
+        }
+        aggregate: {
+          args: Prisma.PhotoAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePhoto>
+        }
+        groupBy: {
+          args: Prisma.PhotoGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PhotoGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PhotoCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PhotoCountAggregateOutputType> | number
         }
       }
     }
@@ -1178,6 +1253,16 @@ export const ProfileScalarFieldEnum = {
 export type ProfileScalarFieldEnum = (typeof ProfileScalarFieldEnum)[keyof typeof ProfileScalarFieldEnum]
 
 
+export const PhotoScalarFieldEnum = {
+  key: 'key',
+  profileId: 'profileId',
+  data: 'data',
+  createdAt: 'createdAt'
+} as const
+
+export type PhotoScalarFieldEnum = (typeof PhotoScalarFieldEnum)[keyof typeof PhotoScalarFieldEnum]
+
+
 export const ConnectionScalarFieldEnum = {
   id: 'id',
   senderId: 'senderId',
@@ -1298,6 +1383,13 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Bytes'
+ */
+export type BytesFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Bytes'>
     
 
 
@@ -1461,6 +1553,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   session?: Prisma.SessionOmit
   profile?: Prisma.ProfileOmit
+  photo?: Prisma.PhotoOmit
   connection?: Prisma.ConnectionOmit
   message?: Prisma.MessageOmit
   support?: Prisma.SupportOmit
