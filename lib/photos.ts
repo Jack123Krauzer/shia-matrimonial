@@ -1,4 +1,3 @@
-import 'server-only';
 import { mkdir, readFile, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';

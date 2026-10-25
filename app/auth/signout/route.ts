@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
-import { authClient } from '../../../lib/supabase/server';
-import { sameOrigin, requestOrigin, handleError } from '../../../lib/store';
+import { signOut } from '../../../lib/auth';
+import { requestOrigin } from '../../../lib/store';
+
 export async function POST(req: Request) {
-  try { sameOrigin(req); const client = await authClient(); await client.auth.signOut(); return NextResponse.redirect(new URL('/', requestOrigin(req)), 303); }
-  catch (e) { return handleError(e); }
+  await signOut();
+  return NextResponse.redirect(new URL(new URL(req.url).searchParams.get('from') === 'admin' ? '/admin/login' : '/auth', requestOrigin(req)), 303);
+}
+
+export async function GET(req: Request) {
+  await signOut();
+  return NextResponse.redirect(new URL(new URL(req.url).searchParams.get('from') === 'admin' ? '/admin/login' : '/auth', requestOrigin(req)), 303);
 }
